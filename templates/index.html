@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Review Sentiment Analyzer</title>
+    <!-- Using Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* animation for result box */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl mx-4">
+        <h1 class="text-3xl font-bold text-gray-800 text-center mb-2">Movie Review Sentiment Analyzer</h1>
+        <p class="text-gray-500 text-center mb-6">Enter a movie review below to classify it as positive or negative.</p>
+        
+        <!-- form that sends the review to Flask -->
+        <form id="sentiment-form" class="space-y-4">
+            <textarea id="review-text" name="review" rows="6" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="e.g., 'The movie was fantastic! The acting was superb and the plot was gripping...'"></textarea>
+            <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 ease-in-out flex items-center justify-center">
+                <span id="button-text">Analyze Sentiment</span>
+                <!-- Loading spinner -->
+                <svg id="loading-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
+        </form>
+
+        <!-- Result box -->
+        <div id="result-container" class="mt-6 hidden"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('sentiment-form');
+        const resultContainer = document.getElementById('result-container');
+        const button = form.querySelector('button');
+        const buttonText = document.getElementById('button-text');
+        const spinner = document.getElementById('loading-spinner');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent the form from reloading the page
+            
+            const reviewText = document.getElementById('review-text').value;
+            if (reviewText.trim() === '') {
+                alert('Please enter a review.');
+                return;
+            }
+
+            // Show loading state
+            button.disabled = true;
+            buttonText.textContent = 'Analyzing...';
+            spinner.classList.remove('hidden');
+            resultContainer.classList.add('hidden');
+
+            try {
+                // Send the review to the /predict endpoint in Flask app
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: new URLSearchParams(new FormData(form))
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Determine result styling
+                const isPositive = data.sentiment === 'Positive';
+                const bgColor = isPositive ? 'bg-green-100' : 'bg-red-100';
+                const textColor = isPositive ? 'text-green-800' : 'text-red-800';
+                const borderColor = isPositive ? 'border-green-400' : 'border-red-400';
+                const emoji = isPositive ? '👍' : '👎';
+
+                // Display the result
+                resultContainer.innerHTML = `
+                    <div class="p-4 rounded-lg border ${borderColor} ${bgColor} ${textColor} fade-in">
+                        <h3 class="font-bold text-lg">Predicted Sentiment: 
+                            <span class="font-extrabold">${data.sentiment} ${emoji}</span>
+                        </h3>
+                    </div>
+                `;
+                resultContainer.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultContainer.innerHTML = `
+                    <div class="p-4 rounded-lg border border-gray-400 bg-gray-100 text-gray-800 fade-in">
+                        <h3 class="font-bold text-lg">An error occurred. Please try again.</h3>
+                    </div>
+                `;
+                resultContainer.classList.remove('hidden');
+            } finally {
+                // Restore button state
+                button.disabled = false;
+                buttonText.textContent = 'Analyze Sentiment';
+                spinner.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
