@@ -12,6 +12,10 @@ import joblib # For saving the model
 import nltk
 import os
 
+print("pandas", pd.__version__)
+print("nltk", nltk.__version__)
+print("joblib", joblib.__version__)
+
 # Download NLTK Data 
 try:
     stopwords.words('english')
