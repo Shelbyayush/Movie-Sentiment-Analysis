@@ -1,23 +1,22 @@
 # Use a standard Python 3.11 image
 FROM python:3.11
 
-# Install git and git-lfs
-RUN apt-get update && apt-get install -y git git-lfs
+# Install curl, which is a tool for downloading files
+RUN apt-get update && apt-get install -y curl
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the Git repository context first
-COPY .git ./.git
+# Copy the requirements file and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Download the model file from your GitHub Release
+# !!! IMPORTANT: REPLACE THE URL BELOW WITH THE ONE YOU COPIED !!!
+RUN curl -L -o sentiment_model_pipeline.pkl "https://github.com/Shelbyayush/Movie-Sentiment-Analysis/releases/download/v1.0/sentiment_model_pipeline.pkl"
 
 # Copy the rest of your application code
 COPY . .
-
-# Initialize LFS and pull the large model file
-RUN git lfs install && git lfs pull
-
-# Install python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
 
 # Command to run the application
 CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:10000"]
