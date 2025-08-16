@@ -1,0 +1,8 @@
+# Ignore the large dataset
+IMDB Dataset.csv
+
+# Ignore the trained model file
+sentiment_model_pipeline.pkl
+
+# Ignore the local virtual environment folder
+nlpenv/
