@@ -3,12 +3,8 @@
 # exit on error
 set -o errexit
 
+# Install python dependencies
 pip install -r requirements.txt
 
-# Install Git LFS
-apt-get update
-apt-get install -y git-lfs
-git lfs install
-
-# Pull the LFS files
+# Pull the LFS files (git-lfs will be pre-installed by Render)
 git lfs pull

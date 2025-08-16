@@ -1,4 +1,4 @@
-FROM python:3.11-alpine
+FROM python:3.11
 
 # Install git and git-lfs
 RUN apt-get update && apt-get install -y git git-lfs
