@@ -11,8 +11,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Download the NLTK data needed for the app
+RUN python -m nltk.downloader stopwords wordnet
+
 # Download the model file from your GitHub Release
-# !!! IMPORTANT: REPLACE THE URL BELOW WITH THE ONE YOU COPIED !!!
 RUN curl -L -o sentiment_model_pipeline.pkl "https://github.com/Shelbyayush/Movie-Sentiment-Analysis/releases/download/v1.0/sentiment_model_pipeline.pkl"
 
 # Copy the rest of your application code
