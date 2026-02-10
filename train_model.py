@@ -1,3 +1,5 @@
+# train_model.py
+
 import pandas as pd
 import re
 from bs4 import BeautifulSoup
@@ -10,13 +12,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import joblib # For saving the model
 import nltk
-import os
 
-print("pandas", pd.__version__)
-print("nltk", nltk.__version__)
-print("joblib", joblib.__version__)
-
-# Download NLTK Data 
+# --- 0. Download NLTK Data ---
+# Ensure necessary NLTK packages are available.
 try:
     stopwords.words('english')
 except LookupError:
@@ -26,25 +24,31 @@ except LookupError:
     print("NLTK data downloaded.")
 
 
-# Load Data 
+# --- 1. Load Data ---
 print("Loading data...")
+# Make sure 'IMDB Dataset.csv' is in the same directory as this script.
 try:
-    df = pd.read_csv('C:\\Users\\Isha\\IdeaProjects\\untitled\\Python\\Projects\\Movie-Sentiment-Analysis\\IMDB Dataset.csv')
+    df = pd.read_csv('IMDB Dataset.csv')
     print("Data loaded successfully.")
 except FileNotFoundError:
     print("Error: 'IMDB Dataset.csv' not found.")
     print("Please download the dataset from Kaggle and place it in the same folder as this script.")
     exit()
 
-#Text Preprocessing 
+# --- 2. Text Preprocessing ---
 print("Setting up preprocessing tools...")
 lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words('english'))
 
 def preprocess_text(text):
-    # Cleans and prepares the text for modeling.
-
-    # Remove HTML tag
+    """
+    Cleans and prepares the text for modeling.
+    - Removes HTML tags
+    - Removes special characters and digits
+    - Converts to lowercase
+    - Tokenizes, removes stopwords, and lemmatizes
+    """
+    # Remove HTML tags
     text = BeautifulSoup(text, "html.parser").get_text()
     
     # Remove special characters and digits
@@ -60,32 +64,35 @@ def preprocess_text(text):
     return ' '.join(words)
 
 print("Preprocessing text data... (This may take a few minutes for 50k reviews)")
-# Applying preprocessing func to review column
+# Apply the preprocessing function to the 'review' column
 df['cleaned_review'] = df['review'].apply(preprocess_text)
 print("Preprocessing complete.")
 
-# Mapping sentiment labels to binary format: positive=1, negative=0 for modeling
+# --- 3. Prepare Data for Modeling ---
+# Map sentiment labels to binary format: positive=1, negative=0
 df['sentiment'] = df['sentiment'].map({'positive': 1, 'negative': 0})
 
 X = df['cleaned_review']
 y = df['sentiment']
 
-# stratify=y to ensure the proportion of positive/negative reviews is the same in train and test sets
+# Split data into training (80%) and testing (20%) sets
+# stratify=y ensures the proportion of positive/negative reviews is the same in train and test sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 print(f"Data split into {len(X_train)} training and {len(X_test)} testing samples.")
 
-# Building and Training the Model using Pipeline 
+# --- 4. Build and Train the Model using a Pipeline ---
+# A pipeline chains together multiple steps, making the workflow cleaner.
 print("Building and training the model pipeline...")
 pipeline = Pipeline([
     ('tfidf', TfidfVectorizer(max_features=5000)), # Convert text to TF-IDF features (top 5000)
     ('logreg', LogisticRegression(max_iter=1000, random_state=42)) # Logistic Regression classifier
 ])
 
-# Train the pipeline on the training data
+# Train the entire pipeline on the training data
 pipeline.fit(X_train, y_train)
 print("Model training complete.")
 
-# Evaluate the Model
+# --- 5. Evaluate the Model ---
 print("\n--- Model Evaluation ---")
 y_pred = pipeline.predict(X_test)
 
@@ -101,27 +108,19 @@ print(confusion_matrix(y_test, y_pred))
 print("\nClassification Report:")
 print(classification_report(y_test, y_pred, target_names=['Negative', 'Positive']))
 
+# --- 6. Save the Model ---
 # Save the trained pipeline to a file for later use
-# Saving the Model
-output_dir = 'C:\\Users\\Isha\\IdeaProjects\\untitled\\Python\\Projects\\Movie-Sentiment-Analysis'
-file_name = 'sentiment_model_pipeline.pkl'
+joblib.dump(pipeline, 'sentiment_model_pipeline.pkl')
+print("\nModel pipeline saved to 'sentiment_model_pipeline.pkl'")
 
-# Create directory if it doesn't exist
-os.makedirs(output_dir, exist_ok=True)
 
-# Construct full path to the file
-file_path = os.path.join(output_dir, file_name)
-
-# Save the trained pipeline to the path
-joblib.dump(pipeline, file_path)
-print(f"\nModel pipeline saved to '{file_path}'")
-
-# Example Prediction on new data
+# --- 7. Example Prediction on New Data ---
+# This demonstrates how to load and use the saved model
 def predict_sentiment(review, model_path='sentiment_model_pipeline.pkl'):
     """Loads the saved pipeline and predicts the sentiment of a single review."""
-    # Load the pipeline from file
+    # Load the pipeline from the file
     loaded_pipeline = joblib.load(model_path)
-    # Preprocess the new review w/ same steps
+    # Preprocess the new review using the same steps
     cleaned_review = preprocess_text(review)
     # Predict the sentiment
     prediction = loaded_pipeline.predict([cleaned_review])
